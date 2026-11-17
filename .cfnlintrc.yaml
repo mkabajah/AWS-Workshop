@@ -2,3 +2,4 @@ templates:
   - labs/*/cloudformation/*.yaml
 ignore_checks:
   - W3002 # Code: ../src is a local path on purpose; scripts/deploy_cfn.py packages it
+  - W3691 # lab 05 pins only the major Postgres version on purpose, so RDS picks a current minor

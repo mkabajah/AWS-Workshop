@@ -87,7 +87,8 @@ Resources:
     UpdateReplacePolicy: Delete
     Properties:
       Engine: postgres
-      EngineVersion: '17.6' # check RDS → Create database for the newest 17.x in your Region
+      EngineVersion: '17' # major only: RDS picks the current 17.x (old minors like 17.6 get retired)
+      AutoMinorVersionUpgrade: true
       DBInstanceClass: db.t4g.micro
       AllocatedStorage: '20'
       StorageType: gp3

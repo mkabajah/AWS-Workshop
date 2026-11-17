@@ -32,7 +32,9 @@ class Lab05LambdaRdsStack(cdk.Stack):
         db = rds.DatabaseInstance(
             self,
             "Database",
-            engine=rds.DatabaseInstanceEngine.postgres(version=rds.PostgresEngineVersion.VER_17_6),
+            # Major version only: RDS picks the current 17.x, so the lab keeps working as old minors retire.
+            engine=rds.DatabaseInstanceEngine.postgres(version=rds.PostgresEngineVersion.VER_17),
+            auto_minor_version_upgrade=True,
             instance_type=ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
             vpc=vpc,
             vpc_subnets=private,

@@ -66,6 +66,7 @@ Then ask your agent: *"Which AWS skills and tools can you use? Which account and
 |---------|-----|
 | `aws: command not found` | Install AWS CLI v2 and open a new terminal |
 | `No module named pytest` / `boto3` | Activate the virtual environment: `source .venv/bin/activate` |
+| CloudShell: `Cannot use the jsii package cache` | `export JSII_RUNTIME_PACKAGE_CACHE=disabled` in that terminal |
 | `Unable to locate credentials` | `aws login` again (credentials expire) |
 | `cdk bootstrap` fails with access denied | You're signed in as a user without admin rights; use your Identity Center admin user |
 | Resources "disappear" in the console | You switched Region; switch back |

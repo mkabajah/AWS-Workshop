@@ -29,3 +29,11 @@ stacks/lab0N_*.py   one file per lab
 
 Why npm for a Python project? The `cdk` command-line tool is written in TypeScript and ships on npm.
 Your stacks stay 100% Python; `npx cdk` just runs `python3 app.py` (see `cdk.json`).
+
+**Running in AWS CloudShell?** It works well (Python, Node.js and the AWS CLI are preinstalled, and it uses
+your console sign-in). Run this once per terminal first, or `cdk` stops with
+"Cannot use the jsii package cache ... writable by group or others":
+
+```bash
+export JSII_RUNTIME_PACKAGE_CACHE=disabled
+```

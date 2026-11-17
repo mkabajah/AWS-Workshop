@@ -42,31 +42,41 @@ class Lab06Ec2WebsiteStack(cdk.Stack):
             managed_policies=[iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore")],
         )
 
+        # One security group for every server. The listener below opens it to the load balancer only.
+        web_sg = ec2.SecurityGroup(self, "WebSg", vpc=vpc, description="Web servers: HTTP from the load balancer")
+
+        # A launch template: the recipe for each server. (New accounts can't create the older
+        # "launch configurations", so always use a launch template.)
+        template = ec2.LaunchTemplate(
+            self,
+            "WebTemplate",
+            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+            machine_image=ec2.MachineImage.latest_amazon_linux2023(),
+            user_data=user_data,
+            role=role,
+            security_group=web_sg,
+            associate_public_ip_address=True,
+            require_imdsv2=True,
+            block_devices=[
+                ec2.BlockDevice(
+                    device_name="/dev/xvda",
+                    volume=ec2.BlockDeviceVolume.ebs(8, volume_type=ec2.EbsDeviceVolumeType.GP3, encrypted=True),
+                )
+            ],
+        )
+
         asg = autoscaling.AutoScalingGroup(
             self,
             "WebServers",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            associate_public_ip_address=True,
-            instance_type=ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-            machine_image=ec2.MachineImage.latest_amazon_linux2023(),
-            user_data=user_data,
-            role=role,
-            require_imdsv2=True,
+            launch_template=template,
             min_capacity=2,
             max_capacity=4,
             health_checks=autoscaling.HealthChecks.with_additional_checks(
                 additional_types=[autoscaling.AdditionalHealthCheckType.ELB],
                 grace_period=cdk.Duration.minutes(3),
             ),
-            block_devices=[
-                autoscaling.BlockDevice(
-                    device_name="/dev/xvda",
-                    volume=autoscaling.BlockDeviceVolume.ebs(
-                        8, volume_type=autoscaling.EbsDeviceVolumeType.GP3, encrypted=True
-                    ),
-                )
-            ],
         )
         asg.scale_on_cpu_utilization("KeepCpuAt50", target_utilization_percent=50)
 
