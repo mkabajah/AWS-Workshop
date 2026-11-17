@@ -98,6 +98,8 @@ done
 | `...not have permissions to call CreateNetworkInterface` | Role lacks VPC permissions | Attach **AWSLambdaVPCAccessExecutionRole** |
 | `relation "products" does not exist` | Table not created | Run the `init` event first |
 | `too many connections` under load | Each function copy opens a connection | Keep one connection per copy; at scale use **RDS Proxy** |
+| `cdk destroy` / delete stack takes 20–45 minutes | AWS releases a VPC Lambda's network interfaces slowly | Normal. The database is deleted early, so nothing costly is left; let it finish |
+| `Cannot find version 17.x for postgres` | That minor version was retired | The lab pins only `17`; if you changed it, pick a version from RDS → Create database |
 
 ## Clean up (do it today)
 
