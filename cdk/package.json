@@ -1,5 +1,5 @@
 {
-  "name": "aws-foundations-labs-cdk-cli",
+  "name": "aws-workshop-cdk-cli",
   "version": "1.0.0",
   "private": true,
   "description": "Pins the cdk command-line tool. The stacks themselves are Python (app.py, stacks/).",

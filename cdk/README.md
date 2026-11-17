@@ -17,7 +17,7 @@ npx cdk destroy Lab03ApiDynamoDb
 |-------|----------------------|
 | `Lab04EventTriggers` | `-c email=you@example.com` |
 | `Lab05LambdaRds` | run `python labs/05-lambda-rds/scripts/package.py` first |
-| `Lab06Ec2Website` | `-c repoUrl=https://github.com/you/aws-foundations-labs.git` |
+| `Lab06Ec2Website` | `-c repoUrl=https://github.com/you/AWS-Workshop.git` |
 | `Lab07Capstone` | `-c stage=1`, `2` or `3` |
 | `Lab08AiBedrock` | `-c modelId=eu.amazon.nova-micro-v1:0 -c siteContext="..."` |
 

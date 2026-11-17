@@ -38,8 +38,8 @@ eval "$(aws configure export-credentials --format env)"
 ## 4. Get the labs and prepare the CDK
 
 ```bash
-git clone https://github.com/<you>/aws-foundations-labs.git
-cd aws-foundations-labs
+git clone https://github.com/<you>/AWS-Workshop.git   # your fork of github.com/mkabajah/AWS-Workshop
+cd AWS-Workshop
 python -m venv .venv            # a private Python environment for this project
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt

@@ -4,7 +4,7 @@
 #   /var/log/cloud-init-output.log
 #
 # EDIT the next line: the URL of YOUR fork of this repository on GitHub.
-REPO_URL="https://github.com/YOUR-GITHUB-USER/aws-foundations-labs.git"
+REPO_URL="https://github.com/mkabajah/AWS-Workshop.git"
 
 set -euxo pipefail
 

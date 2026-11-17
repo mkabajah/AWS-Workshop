@@ -56,7 +56,7 @@ VPC=$(aws ec2 describe-vpcs --filters Name=isDefault,Values=true --query "Vpcs[0
 SUBNET=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC --query "Subnets[0].SubnetId" --output text)
 aws cloudformation deploy --template-file labs/06-ec2-website/cloudformation/ec2-single.yaml \
   --stack-name lab06-web --capabilities CAPABILITY_IAM \
-  --parameter-overrides VpcId=$VPC SubnetId=$SUBNET RepoUrl=https://github.com/<you>/aws-foundations-labs.git
+  --parameter-overrides VpcId=$VPC SubnetId=$SUBNET RepoUrl=https://github.com/<you>/AWS-Workshop.git
 ```
 
 ### Fix it: the classic EC2 problems
@@ -86,13 +86,13 @@ The servers accept traffic only from the load balancer.
 ```bash
 aws cloudformation deploy --template-file labs/06-ec2-website/cloudformation/ec2-alb-asg.yaml \
   --stack-name lab06-fleet --capabilities CAPABILITY_IAM \
-  --parameter-overrides RepoUrl=https://github.com/<you>/aws-foundations-labs.git
+  --parameter-overrides RepoUrl=https://github.com/<you>/AWS-Workshop.git
 ```
 
 ### Path C · CDK
 
 ```bash
-cd cdk && npx cdk deploy Lab06Ec2Website -c repoUrl=https://github.com/<you>/aws-foundations-labs.git
+cd cdk && npx cdk deploy Lab06Ec2Website -c repoUrl=https://github.com/<you>/AWS-Workshop.git
 ```
 
 ### Path A · Console (outline)

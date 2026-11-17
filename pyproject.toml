@@ -1,5 +1,5 @@
 [project]
-name = "aws-foundations-labs"
+name = "aws-workshop"
 version = "1.0.0"
 description = "Hands-on AWS labs: console, CloudFormation and CDK, from a static website to Lambda, RDS, EC2 and Bedrock"
 requires-python = ">=3.11"

@@ -12,7 +12,7 @@ Parameters:
     Description: A public subnet of that VPC (any subnet of the default VPC)
   RepoUrl:
     Type: String
-    Description: Your fork of this repository, e.g. https://github.com/you/aws-foundations-labs.git
+    Description: Your fork of this repository, e.g. https://github.com/you/AWS-Workshop.git
     AllowedPattern: '^https://.+\.git$'
   InstanceType:
     Type: String

@@ -3,7 +3,7 @@
 
 npx cdk deploy Lab02LambdaBasics
 npx cdk deploy Lab04EventTriggers -c email=you@example.com
-npx cdk deploy Lab06Ec2Website -c repoUrl=https://github.com/you/aws-foundations-labs.git
+npx cdk deploy Lab06Ec2Website -c repoUrl=https://github.com/you/AWS-Workshop.git
 npx cdk deploy Lab07Capstone -c stage=2
 npx cdk destroy Lab05LambdaRds
 """
@@ -47,7 +47,7 @@ Lab06Ec2WebsiteStack(
     "Lab06Ec2Website",
     env=env,
     description="Lab 06 - EC2 web servers behind a load balancer",
-    repo_url=ctx("repoUrl", "https://github.com/YOUR-GITHUB-USER/aws-foundations-labs.git"),
+    repo_url=ctx("repoUrl", "https://github.com/mkabajah/AWS-Workshop.git"),
 )
 
 stage = int(ctx("stage", "1"))
@@ -64,5 +64,5 @@ Lab08AiBedrockStack(
     site_context=ctx("siteContext", "Your Name is a computer science student learning AWS."),
 )
 
-cdk.Tags.of(app).add("project", "aws-foundations-labs")
+cdk.Tags.of(app).add("project", "aws-workshop")
 app.synth()

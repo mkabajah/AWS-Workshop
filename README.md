@@ -1,6 +1,10 @@
-# AWS Foundations Labs
+# AWS Workshop · Foundations Labs
+
+[![CI](https://github.com/mkabajah/AWS-Workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/mkabajah/AWS-Workshop/actions/workflows/ci.yml)
 
 Hands-on labs that take you from "what is AWS?" to building the back end of a real product.
+They go with a 3-session workshop (3 hours each) by Mohammad Kabajah: the session-by-session flow is in
+[`workshops/`](workshops/).
 Every lab builds one skill **three ways**, so you see what each tool does for you:
 
 | Path | How | Why |
@@ -41,9 +45,18 @@ flowchart LR
   L03 --> L09[09 Test locally on AWS Emulator]
 ```
 
+## The workshop
+
+| Session | Topic | Guide |
+|---------|-------|-------|
+| 1 | Cloud basics, core AWS services, IAM, pricing, a safe account | slides 1–40 |
+| 2 | Host and grow your website: console, script, Amplify, then the CDK | [Session 2 run of show](workshops/session-2.md) |
+| 3 | Build the labs, test on AWS Emulator, agents, certifications | [Session 3 run of show](workshops/session-3.md) |
+
 ## Repository layout
 
 ```
+workshops/            the run of show for each session: timings, commands, checkpoints, fixes
 site/                 the personal website used by labs 01, 06 and 07
 labs/NN-name/
   README.md           the lab guide: console, CloudFormation and CDK paths, fixes, clean up
@@ -61,8 +74,8 @@ amplify.yml           Amplify Hosting settings for the website (lab 01, path D)
 ## Quick start
 
 ```bash
-git clone https://github.com/<you>/aws-foundations-labs.git
-cd aws-foundations-labs
+git clone https://github.com/<you>/AWS-Workshop.git   # your fork of github.com/mkabajah/AWS-Workshop
+cd AWS-Workshop
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 pytest                      # 23 unit tests, all offline (emulator tests skip)
