@@ -24,7 +24,7 @@ bucket policies (resource-based policies) · cache invalidation · infrastructur
 **Update the site from the terminal** (works for any bucket and distribution):
 
 ```bash
-./labs/01-static-website/cli/deploy.sh <bucket-name> <distribution-id>
+python labs/01-static-website/cli/deploy.py <bucket-name> <distribution-id>
 ```
 
 ## Path B · CloudFormation
@@ -38,7 +38,7 @@ aws cloudformation deploy \
 
 # read the outputs, then upload the site
 aws cloudformation describe-stacks --stack-name lab01-static-site --query "Stacks[0].Outputs" --output table
-./labs/01-static-website/cli/deploy.sh <BucketName> <DistributionId>
+python labs/01-static-website/cli/deploy.py <BucketName> <DistributionId>
 ```
 
 Or in the console: **CloudFormation** → **Create stack** → **Upload a template file** → `static-site.yaml`.
@@ -51,7 +51,7 @@ npx cdk diff Lab01StaticSite
 npx cdk deploy Lab01StaticSite     # also uploads site/ and clears the cache
 ```
 
-Read [`cdk/lib/lab01-static-site-stack.ts`](../../cdk/lib/lab01-static-site-stack.ts): about 40 lines replace the whole template.
+Read [`cdk/stacks/lab01_static_site.py`](../../cdk/stacks/lab01_static_site.py): about 40 lines replace the whole template.
 
 ## Path D · Amplify Hosting (git push to deploy)
 
@@ -71,7 +71,7 @@ Every `git push` now publishes a new version.
 |---------|-------|-----|
 | `AccessDenied` XML at the root URL | No default root object | Distribution → Settings → Edit → Default root object = `index.html` |
 | `AccessDenied` on every page | Bucket policy doesn't name this distribution | Copy the policy from the distribution's Origins tab into the bucket policy |
-| Old version after an upload | CloudFront cache | `deploy.sh` invalidates `/*`; or create the invalidation by hand |
+| Old version after an upload | CloudFront cache | `deploy.py` invalidates `/*`; or create the invalidation by hand |
 | Bucket name already taken | Names are global | Add your name and a number |
 | Site works on HTTP only | You used the S3 website endpoint as origin | Choose the bucket itself, not the website endpoint |
 

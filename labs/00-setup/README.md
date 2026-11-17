@@ -16,9 +16,9 @@
 | Tool | Check | Install |
 |------|-------|---------|
 | AWS CLI v2 (2.35+) | `aws --version` | [docs.aws.amazon.com/cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |
-| Node.js 20 or 22 | `node --version` | [nodejs.org](https://nodejs.org) |
+| Python 3.11+ (3.13 recommended) | `python3 --version` | [python.org](https://www.python.org/downloads/) |
+| Node.js 22 (only to run the `cdk` command) | `node --version` | [nodejs.org](https://nodejs.org) |
 | Git | `git --version` | [git-scm.com](https://git-scm.com) |
-| cfn-lint (optional) | `cfn-lint --version` | `pip install cfn-lint` |
 
 ## 3. Sign in from the terminal, safely
 
@@ -40,10 +40,14 @@ eval "$(aws configure export-credentials --format env)"
 ```bash
 git clone https://github.com/<you>/aws-foundations-labs.git
 cd aws-foundations-labs
-npm ci && npm test              # runs the Lambda unit tests locally
+python -m venv .venv            # a private Python environment for this project
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest                          # runs the Lambda unit tests locally, no AWS needed
 
 cd cdk
-npm ci
+pip install -r requirements.txt # the CDK library for Python
+npm install                     # the cdk command
 npx cdk bootstrap               # once per account and Region: a small stack the CDK uses to deploy
 npx cdk list                    # shows Lab01StaticSite ... Lab08AiBedrock
 ```
@@ -61,6 +65,7 @@ Then ask your agent: *"Which AWS skills and tools can you use? Which account and
 | You see | Fix |
 |---------|-----|
 | `aws: command not found` | Install AWS CLI v2 and open a new terminal |
+| `No module named pytest` / `boto3` | Activate the virtual environment: `source .venv/bin/activate` |
 | `Unable to locate credentials` | `aws login` again (credentials expire) |
 | `cdk bootstrap` fails with access denied | You're signed in as a user without admin rights; use your Identity Center admin user |
 | Resources "disappear" in the console | You switched Region; switch back |

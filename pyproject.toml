@@ -1,0 +1,19 @@
+[project]
+name = "aws-foundations-labs"
+version = "1.0.0"
+description = "Hands-on AWS labs: console, CloudFormation and CDK, from a static website to Lambda, RDS, EC2 and Bedrock"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["stacks", "conftest"]

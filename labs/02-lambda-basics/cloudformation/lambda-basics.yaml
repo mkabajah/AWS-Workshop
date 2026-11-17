@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Lab 02 - Lambda basics: one function, an execution role, a log group with
   7-day retention and a public function URL.
-  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+  Deploy with scripts/deploy_cfn.py (it packages ../src for you).
 
 Parameters:
   Greeting:
@@ -34,9 +34,9 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Description: Lab 02 - hello from Lambda
-      Runtime: nodejs22.x
+      Runtime: python3.13
       Architectures: [arm64]
-      Handler: index.handler
+      Handler: lambda_function.lambda_handler
       Code: ../src
       MemorySize: 128
       Timeout: 5

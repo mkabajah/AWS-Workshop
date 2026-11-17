@@ -1,0 +1,8 @@
+# Everything you need on your laptop to run the tests and lint the templates.
+#   python -m venv .venv && source .venv/bin/activate   (Windows: .venv\Scripts\activate)
+#   pip install -r requirements-dev.txt
+boto3>=1.35
+pg8000==1.31.5
+pytest==9.0.2
+cfn-lint>=1.20
+ruff>=0.8

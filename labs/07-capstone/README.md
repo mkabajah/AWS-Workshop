@@ -18,8 +18,8 @@ flowchart LR
 | 2 | DynamoDB, Lambda, HTTP API (throttled), `/api/*` behavior | Visitor counter + guestbook |
 | 3 | Uploads bucket + a Lambda triggered by S3 | "Latest uploads" list |
 
-Code: [`lambda/api`](lambda/api/index.mjs) · [`lambda/on-upload`](lambda/on-upload/index.mjs) ·
-stack: [`cdk/lib/lab07-capstone-stack.ts`](../../cdk/lib/lab07-capstone-stack.ts) · website: [`site/`](../../site/)
+Code: [`lambda/api`](lambda/api/lambda_function.py) · [`lambda/on-upload`](lambda/on-upload/lambda_function.py) ·
+stack: [`cdk/stacks/lab07_capstone.py`](../../cdk/stacks/lab07_capstone.py) · website: [`site/`](../../site/)
 
 **You'll learn:** how labs 01–04 fit together · one domain for site and API (no CORS) ·
 single-table DynamoDB design · `cdk diff` before every change · tearing everything down with one command.
@@ -68,4 +68,4 @@ npx cdk destroy Lab07Capstone
 
 - Add lab 08's "ask me" assistant to the page.
 - Add sign-in with **Cognito** so only signed-in users can post.
-- Ask your agent: *"Run a Well-Architected review of cdk/lib/lab07-capstone-stack.ts and fix the top two risks."*
+- Ask your agent: *"Run a Well-Architected review of cdk/stacks/lab07_capstone.py and fix the top two risks."*

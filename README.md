@@ -7,9 +7,10 @@ Every lab builds one skill **three ways**, so you see what each tool does for yo
 |------|-----|-----|
 | **A · Console** | Click through the AWS console | See every piece and every setting |
 | **B · CloudFormation** | Deploy one YAML template | Repeatable, reviewable infrastructure as code |
-| **C · CDK** | `npx cdk deploy <Lab>` from TypeScript | The same, with a real programming language |
+| **C · CDK** | `npx cdk deploy <Lab>` from Python | The same, with a real programming language |
 
-All the Lambda code is shared by the three paths: you write it once in `labs/*/src/`.
+Everything is **Python**: the Lambda functions (Python 3.13, boto3), the CDK stacks, the helper scripts
+and the tests. The Lambda code is shared by the three paths: you write it once in `labs/*/src/`.
 
 ## The labs
 
@@ -44,12 +45,13 @@ flowchart LR
 site/                 the personal website used by labs 01, 06 and 07
 labs/NN-name/
   README.md           the lab guide: console, CloudFormation and CDK paths, fixes, clean up
-  src/                Lambda code (the same for all three paths)
+  src/                Lambda code: lambda_function.py (the same for all three paths)
   events/             test events to paste into the Lambda console
   cloudformation/     the lab as one template
-cdk/                  one CDK app with one stack per lab
-scripts/deploy-cfn.sh deploys any lab template (packages the Lambda code for you)
-tests/                unit tests for every Lambda function (no AWS account needed)
+cdk/                  one CDK app (app.py) with one stack per lab (stacks/)
+scripts/deploy_cfn.py deploys any lab template (packages the Lambda code for you)
+tests/                pytest unit tests for every Lambda function (no AWS account needed)
+requirements-dev.txt  what you need locally: boto3, pytest, cfn-lint, ruff
 amplify.yml           Amplify Hosting settings for the website (lab 01, path D)
 ```
 
@@ -58,10 +60,13 @@ amplify.yml           Amplify Hosting settings for the website (lab 01, path D)
 ```bash
 git clone https://github.com/<you>/aws-foundations-labs.git
 cd aws-foundations-labs
-npm ci && npm test          # 22 tests, all offline
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest                      # 23 tests, all offline
 
 aws login                   # see labs/00-setup
-cd cdk && npm ci
+cd cdk
+pip install -r requirements.txt && npm install      # CDK library (Python) + cdk command (npm)
 npx cdk bootstrap           # once per account and Region
 npx cdk deploy Lab02LambdaBasics
 ```

@@ -17,14 +17,18 @@ flowchart LR
 **You'll learn:** VPCs and private subnets · security groups that reference each other · RDS and DB subnet groups ·
 Secrets Manager (no passwords in code) · VPC endpoints · Lambda in a VPC · connection reuse · SQL injection protection.
 
-Code: [`src/index.mjs`](src/index.mjs) · SQL: [`sql/schema.sql`](sql/schema.sql) · Events: [`events/`](events/)
+Code: [`src/lambda_function.py`](src/lambda_function.py) · SQL: [`sql/schema.sql`](sql/schema.sql) · Events: [`events/`](events/)
 
-The function needs the `pg` driver, so its code is a folder with `node_modules`, not one file.
+The function needs two things that are not in the Lambda runtime: the **pg8000** PostgreSQL driver
+(pure Python, see [`src/requirements.txt`](src/requirements.txt)) and the **RDS certificate bundle**
+`global-bundle.pem`, so the function can check it is really talking to your database.
 All three paths start with:
 
 ```bash
-cd labs/05-lambda-rds/src && npm ci --omit=dev && cd -
+python labs/05-lambda-rds/scripts/package.py
 ```
+
+It fills `labs/05-lambda-rds/build/` (used by CloudFormation and the CDK) and creates `function.zip` (for the console).
 
 ## Path A · Console
 
@@ -33,8 +37,8 @@ cd labs/05-lambda-rds/src && npm ci --omit=dev && cd -
    - Instance `db.t4g.micro` · storage 20 GB gp3.
    - Connectivity: default VPC · **Public access: No** · new security group `lab05-db-sg`.
    - Additional configuration → **Initial database name** `shop` → **Create database** (about 10 minutes).
-2. **Package the code:** `./labs/05-lambda-rds/scripts/package.sh` → creates `labs/05-lambda-rds/function.zip`.
-3. **Lambda** → create `products` (Node.js 22.x, arm64) → **Code** → **Upload from** → **.zip file** → `function.zip`.
+2. **Package the code:** you did it above: `labs/05-lambda-rds/function.zip`.
+3. **Lambda** → create `products` (Python 3.13, arm64) → **Code** → **Upload from** → **.zip file** → `function.zip`.
    - **Configuration** → **General**: memory 256 MB, timeout 15 s.
    - **Environment variables**:
 
@@ -43,7 +47,6 @@ cd labs/05-lambda-rds/src && npm ci --omit=dev && cd -
      | `DB_HOST` | RDS → lab05-db → **Endpoint** |
      | `DB_NAME` | `shop` |
      | `SECRET_ARN` | RDS → lab05-db → Configuration → **Master credentials ARN** |
-     | `NODE_EXTRA_CA_CERTS` | `/var/runtime/ca-cert.pem` |
 4. **Connect them:** RDS → lab05-db → **Actions** → **Set up Lambda connection** → existing function `products` →
    no RDS Proxy → **Set up**. This puts the function in the database's VPC and adds the security group rules for port 5432.
 5. **Let the function read the secret:** Lambda → Configuration → Permissions → role → **Create inline policy**:
@@ -58,7 +61,7 @@ cd labs/05-lambda-rds/src && npm ci --omit=dev && cd -
 ## Path B · CloudFormation
 
 ```bash
-./scripts/deploy-cfn.sh labs/05-lambda-rds/cloudformation/lambda-rds.yaml lab05-rds
+python scripts/deploy_cfn.py labs/05-lambda-rds/cloudformation/lambda-rds.yaml lab05-rds
 ```
 [`lambda-rds.yaml`](cloudformation/lambda-rds.yaml) builds everything from steps 1–6 in its own private VPC
 (about 10 minutes, mostly the database). Read the security groups: the database only accepts the function's group,
@@ -69,8 +72,8 @@ the endpoint only accepts HTTPS from the function's group.
 ```bash
 cd cdk && npx cdk deploy Lab05LambdaRds
 ```
-In [`lab05-lambda-rds-stack.ts`](../../cdk/lib/lab05-lambda-rds-stack.ts), two lines replace steps 4–5:
-`db.connections.allowDefaultPortFrom(fn)` and `db.secret.grantRead(fn)`.
+In [`lab05_lambda_rds.py`](../../cdk/stacks/lab05_lambda_rds.py), two lines replace steps 4–5:
+`db.connections.allow_default_port_from(fn)` and `db.secret.grant_read(fn)`.
 
 ## Test it from the terminal
 
@@ -87,13 +90,14 @@ done
 |---------|-------|-----|
 | `Task timed out` on every call | No network path: endpoint missing, or security group blocks it | Step 6; endpoint SG must allow 443 from the function's SG |
 | `timeout expired` / `Connection terminated` | Database SG doesn't allow the function | Step 4, or add inbound 5432 from the function's SG |
-| `self-signed certificate in certificate chain` | Node can't verify the RDS certificate | `NODE_EXTRA_CA_CERTS=/var/runtime/ca-cert.pem` |
-| `no pg_hba.conf entry ... no encryption` | Connected without SSL | Keep `ssl: { rejectUnauthorized: true }` in the code |
+| `CERTIFICATE_VERIFY_FAILED` | The RDS certificate can't be checked | Build with `package.py` so `global-bundle.pem` is in the zip |
+| `global-bundle.pem is missing` | Uploaded `lambda_function.py` alone | Upload the zip from `package.py` |
+| `no pg_hba.conf entry ... no encryption` | Connected without SSL | Keep `ssl_context=` in the code |
 | `password authentication failed` | Secret rotated or wrong secret ARN | Use the **Master credentials ARN** from RDS |
-| `Cannot find package 'pg'` | Uploaded `index.mjs` alone | Upload the zip from `package.sh` |
+| `No module named 'pg8000'` | Uploaded `lambda_function.py` alone | Upload the zip from `package.py` |
 | `...not have permissions to call CreateNetworkInterface` | Role lacks VPC permissions | Attach **AWSLambdaVPCAccessExecutionRole** |
 | `relation "products" does not exist` | Table not created | Run the `init` event first |
-| `too many connections` under load | Each function copy opens a connection | Keep `max: 1`; at scale use **RDS Proxy** |
+| `too many connections` under load | Each function copy opens a connection | Keep one connection per copy; at scale use **RDS Proxy** |
 
 ## Clean up (do it today)
 

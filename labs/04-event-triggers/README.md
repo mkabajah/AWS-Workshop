@@ -14,9 +14,9 @@ flowchart LR
 
 | Trigger | Function | Pattern |
 |---------|----------|---------|
-| S3 upload | [`src/on-upload`](src/on-upload/index.mjs) | React to new files: thumbnails, scans, imports |
-| SQS queue | [`src/process-order`](src/process-order/index.mjs) | Do work in the background, retry failures, park bad messages |
-| Schedule | [`src/daily-report`](src/daily-report/index.mjs) | Cron jobs: reports, clean-ups, reminders |
+| S3 upload | [`src/on-upload`](src/on-upload/lambda_function.py) | React to new files: thumbnails, scans, imports |
+| SQS queue | [`src/process-order`](src/process-order/lambda_function.py) | Do work in the background, retry failures, park bad messages |
+| Schedule | [`src/daily-report`](src/daily-report/lambda_function.py) | Cron jobs: reports, clean-ups, reminders |
 
 **You'll learn:** event-driven design · S3 event notifications · SNS topics and subscriptions · SQS queues,
 visibility timeout, retries and dead-letter queues · partial batch failures · EventBridge schedules ·
@@ -30,7 +30,7 @@ loose coupling (the uploader doesn't know the function exists).
 
 **Trigger 1: S3 → Lambda → SNS**
 1. **S3** → create bucket `lab04-uploads-<yourname>` (private).
-2. **Lambda** → create `on-upload` (Node.js 22.x, arm64), paste [`src/on-upload/index.mjs`](src/on-upload/index.mjs), Deploy.
+2. **Lambda** → create `on-upload` (Python 3.13, arm64), paste [`src/on-upload/lambda_function.py`](src/on-upload/lambda_function.py), Deploy.
    Environment variable `TOPIC_ARN` = your topic's ARN.
 3. Role → add an inline policy: `s3:GetObject` on `arn:aws:s3:::lab04-uploads-<yourname>/*` and `sns:Publish` on the topic ARN.
 4. **Add trigger** → **S3** → your bucket → event type **All object create events** → acknowledge → Add.
@@ -39,14 +39,14 @@ loose coupling (the uploader doesn't know the function exists).
 **Trigger 2: SQS → Lambda, with a dead-letter queue**
 1. **SQS** → create queue `orders-dlq` (Standard).
 2. Create queue `orders` → **Visibility timeout** 60 s → **Dead-letter queue**: enable, `orders-dlq`, **Maximum receives** 3.
-3. **Lambda** → create `process-order`, paste [`src/process-order/index.mjs`](src/process-order/index.mjs), Deploy.
+3. **Lambda** → create `process-order`, paste [`src/process-order/lambda_function.py`](src/process-order/lambda_function.py), Deploy.
    Role → attach the managed policy **AWSLambdaSQSQueueExecutionRole**.
 4. **Add trigger** → **SQS** → `orders` → batch size 10 → tick **Report batch item failures** → Add.
 5. SQS → `orders` → **Send and receive messages** → body = [`events/order-good.json`](events/order-good.json) → Send. The log shows the total.
 6. Send [`events/order-bad.json`](events/order-bad.json): it fails 3 times, then appears in `orders-dlq` (**Poll for messages** there).
 
 **Trigger 3: a schedule**
-1. **Lambda** → create `daily-report`, paste [`src/daily-report/index.mjs`](src/daily-report/index.mjs), Deploy.
+1. **Lambda** → create `daily-report`, paste [`src/daily-report/lambda_function.py`](src/daily-report/lambda_function.py), Deploy.
    Environment: `BUCKET_NAME` = your uploads bucket, `TOPIC_ARN` = your topic. Timeout 30 s.
    Role → inline policy: `s3:ListBucket` on `arn:aws:s3:::lab04-uploads-<yourname>` and `sns:Publish` on the topic.
 2. **Add trigger** → **EventBridge (CloudWatch Events)** → new rule `daily-report` → **Schedule expression** `rate(5 minutes)` for the demo → Add.
@@ -55,7 +55,7 @@ loose coupling (the uploader doesn't know the function exists).
 ## Path B · CloudFormation
 
 ```bash
-./scripts/deploy-cfn.sh labs/04-event-triggers/cloudformation/event-triggers.yaml lab04-triggers \
+python scripts/deploy_cfn.py labs/04-event-triggers/cloudformation/event-triggers.yaml lab04-triggers \
   NotificationEmail=you@example.com ReportSchedule="rate(5 minutes)"
 ```
 Confirm the subscription email. Note in [`event-triggers.yaml`](cloudformation/event-triggers.yaml) how the bucket name is

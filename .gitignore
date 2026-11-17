@@ -1,6 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Lab 05 package (built by labs/05-lambda-rds/scripts/package.py)
+labs/05-lambda-rds/build/
+
+# CDK
 node_modules/
 cdk/cdk.out/
 cdk/cdk.context.json
+
+# Misc
 *.zip
 out.json
 packaged-*.yaml

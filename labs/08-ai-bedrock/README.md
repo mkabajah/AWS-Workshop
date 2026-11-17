@@ -13,7 +13,7 @@ flowchart LR
 **You'll learn:** foundation models and inference profiles · the Bedrock Converse API · system prompts and
 grounding · tokens and cost control (max tokens, reserved concurrency) · IAM for AI services.
 
-Code: [`src/index.mjs`](src/index.mjs)
+Code: [`src/lambda_function.py`](src/lambda_function.py)
 
 ## Before you start: pick a model
 
@@ -23,7 +23,7 @@ Try it once in the **Playground** (that's also a $20 Free Tier credit activity).
 
 ## Path A · Console
 
-1. **Lambda** → create `ask` (Node.js 22.x, arm64) → paste [`src/index.mjs`](src/index.mjs) → **Deploy**.
+1. **Lambda** → create `ask` (Python 3.13, arm64) → paste [`src/lambda_function.py`](src/lambda_function.py) → **Deploy**.
 2. **Configuration** → **General**: memory 256 MB, timeout 30 s. **Concurrency** → reserve **2**.
 3. **Environment variables:** `MODEL_ID` = the ID you copied · `SITE_CONTEXT` = two or three sentences about you.
 4. **Permissions** → role → inline policy:
@@ -43,7 +43,7 @@ Try it once in the **Playground** (that's also a $20 Free Tier credit activity).
 ## Path B · CloudFormation
 
 ```bash
-./scripts/deploy-cfn.sh labs/08-ai-bedrock/cloudformation/ai-bedrock.yaml lab08-ask \
+python scripts/deploy_cfn.py labs/08-ai-bedrock/cloudformation/ai-bedrock.yaml lab08-ask \
   ModelId=eu.amazon.nova-micro-v1:0 SiteContext="Dana studies computer science and builds apps on AWS."
 ```
 

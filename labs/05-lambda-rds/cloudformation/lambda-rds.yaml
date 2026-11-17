@@ -4,7 +4,8 @@ Description: >-
   subnets, security groups, an RDS database whose password lives in Secrets Manager,
   a Secrets Manager VPC endpoint and a Lambda function inside the VPC.
   Costs while running: about $0.04/hour (db.t4g.micro + endpoint). Delete the stack after the lab.
-  Run "npm ci --omit=dev" in ../src first, then deploy with scripts/deploy-cfn.sh.
+  Run "python labs/05-lambda-rds/scripts/package.py" first (it fills ../build),
+  then deploy with scripts/deploy_cfn.py.
 
 Parameters:
   DatabaseName:
@@ -139,10 +140,10 @@ Resources:
     DependsOn: SecretsManagerEndpoint
     Properties:
       Description: Lab 05 - reads and writes PostgreSQL
-      Runtime: nodejs22.x
+      Runtime: python3.13
       Architectures: [arm64]
-      Handler: index.handler
-      Code: ../src
+      Handler: lambda_function.lambda_handler
+      Code: ../build # made by scripts/package.py: code + pg8000 + RDS certificates
       MemorySize: 256
       Timeout: 15
       Role: !GetAtt FunctionRole.Arn
@@ -154,7 +155,6 @@ Resources:
           DB_HOST: !GetAtt Database.Endpoint.Address
           DB_NAME: !Ref DatabaseName
           SECRET_ARN: !GetAtt Database.MasterUserSecret.SecretArn
-          NODE_EXTRA_CA_CERTS: /var/runtime/ca-cert.pem
 
 Outputs:
   FunctionName:

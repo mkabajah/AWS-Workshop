@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Lab 08 - An "ask me" AI endpoint: function URL -> Lambda -> Amazon Bedrock.
   Capped at 2 concurrent requests and 300 output tokens per answer to protect your credits.
-  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+  Deploy with scripts/deploy_cfn.py (it packages ../src for you).
 
 Parameters:
   ModelId:
@@ -49,9 +49,9 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Description: Lab 08 - answers questions with Amazon Bedrock
-      Runtime: nodejs22.x
+      Runtime: python3.13
       Architectures: [arm64]
-      Handler: index.handler
+      Handler: lambda_function.lambda_handler
       Code: ../src
       MemorySize: 256
       Timeout: 30

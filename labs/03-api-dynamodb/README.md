@@ -20,12 +20,12 @@ flowchart LR
 **You'll learn:** NoSQL tables and keys · on-demand billing · IAM policies scoped to one table ·
 API Gateway routes and integrations · resource-based permissions · CORS · HTTP status codes.
 
-Code: [`src/index.mjs`](src/index.mjs) · Test event: [`events/create-note.json`](events/create-note.json)
+Code: [`src/lambda_function.py`](src/lambda_function.py) · Test event: [`events/create-note.json`](events/create-note.json)
 
 ## Path A · Console
 
 1. **DynamoDB** → **Create table** → name `notes`, partition key `id` (String) → **Default settings** (on-demand) → **Create table**.
-2. **Lambda** → create `notes-api` (Node.js 22.x, arm64) → paste [`src/index.mjs`](src/index.mjs) → **Deploy**.
+2. **Lambda** → create `notes-api` (Python 3.13, arm64) → paste [`src/lambda_function.py`](src/lambda_function.py) → **Deploy**.
 3. **Configuration** → **Environment variables** → `TABLE_NAME` = `notes`. **General configuration** → timeout 10 s.
 4. **Permissions**: **Configuration** → **Permissions** → click the role → **Add permissions** → **Create inline policy** → JSON:
    ```json
@@ -48,7 +48,7 @@ Code: [`src/index.mjs`](src/index.mjs) · Test event: [`events/create-note.json`
 ## Path B · CloudFormation
 
 ```bash
-./scripts/deploy-cfn.sh labs/03-api-dynamodb/cloudformation/api-dynamodb.yaml lab03-notes
+python scripts/deploy_cfn.py labs/03-api-dynamodb/cloudformation/api-dynamodb.yaml lab03-notes
 ```
 
 [`api-dynamodb.yaml`](cloudformation/api-dynamodb.yaml) uses the HTTP API "quick create": one resource gives the API,

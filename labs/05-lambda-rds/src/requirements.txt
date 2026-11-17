@@ -1,0 +1,2 @@
+# The PostgreSQL driver. Pure Python, so the same files work on any Lambda architecture.
+pg8000==1.31.5
