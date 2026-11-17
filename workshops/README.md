@@ -24,6 +24,24 @@ flowchart LR
 | Session 2 | An AWS account with MFA and a budget alert (session 1), a modern browser, their own `index.html` (optional) |
 | Session 3 | A fork of this repo, Python 3.11+, `pytest` passing, AWS CLI 2.35+ with `aws login` working; Docker on Mac or Windows for the emulator lab |
 
+## No laptop setup? Use AWS CloudShell
+
+Every lab also runs in **AWS CloudShell**, the terminal inside the AWS console (icon at the bottom left, or
+the `>_` icon at the top). It already has Python, Node.js, git and the AWS CLI, and it uses your console
+sign-in, so there are no access keys to create or paste:
+
+```bash
+git clone https://github.com/mkabajah/AWS-Workshop.git && cd AWS-Workshop
+python3 -m venv /tmp/venv && source /tmp/venv/bin/activate
+pip install -r requirements-dev.txt -r cdk/requirements.txt && pytest
+export JSII_RUNTIME_PACKAGE_CACHE=disabled     # CloudShell needs this for the Python CDK
+cd cdk && npm install && npx cdk bootstrap
+npx cdk deploy Lab02LambdaBasics
+```
+
+Keep the virtual environment in `/tmp` (the home folder has only 1 GB). Lab 09 (AWS Emulator) still needs a
+laptop or Docker.
+
 ## Cost rules for every session
 
 - Labs 01–04, 07, 08 fit inside the AWS credits.
