@@ -19,15 +19,21 @@ git clone --depth 1 "$REPO_URL" /opt/website
 cat > /usr/local/bin/update-site <<'SCRIPT'
 #!/bin/bash
 set -euo pipefail
-git -C /opt/website pull --ff-only
+git -C /opt/website pull --ff-only --quiet
 rm -rf /usr/share/nginx/html/*
 cp -r /opt/website/site/. /usr/share/nginx/html/
+
+# Tell the page which server answered (IMDSv2: get a token, then ask for the metadata).
+# Behind the load balancer, refresh a few times and watch the server change.
+TOKEN=$(curl -s -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+md() { curl -s -H "X-aws-ec2-metadata-token: $TOKEN" "http://169.254.169.254/latest/meta-data/$1"; }
+echo "{\"stage\": 1, \"deployedWith\": \"EC2 + nginx · server $(md instance-id) in $(md placement/availability-zone)\"}" \
+  > /usr/share/nginx/html/config.json
+
 echo "Website updated to commit $(git -C /opt/website rev-parse --short HEAD)"
 SCRIPT
 chmod +x /usr/local/bin/update-site
-
-rm -rf /usr/share/nginx/html/*
-cp -r /opt/website/site/. /usr/share/nginx/html/
+/usr/local/bin/update-site
 
 # 4. Production touches: a health check for the load balancer, compression, security headers
 cat > /etc/nginx/default.d/website.conf <<'NGINX'
