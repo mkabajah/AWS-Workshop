@@ -25,6 +25,7 @@ and the tests. The Lambda code is shared by the three paths: you write it once i
 | 06 | [Website on EC2](labs/06-ec2-website/) | One server, then a self-healing fleet | EC2, user data, Session Manager, ALB, Auto Scaling | 60 min | ≈ $0.05/hour |
 | 07 | [Capstone](labs/07-capstone/) | Your site grown into an app, in 3 stages | All of the above, with the CDK | 60 min | ≈ $0 |
 | 08 | [Add AI](labs/08-ai-bedrock/) | An "ask me" assistant for your site | Bedrock, Lambda | 30 min | cents |
+| 09 | [AWS Emulator](labs/09-aws-emulator/) | AWS on your laptop: run and test your Lambda code locally | AWS Emulator, S3, DynamoDB, SQS | 45 min | $0, no account |
 
 Labs 01–04 and 07 fit in the Free Tier credits easily. **Labs 05 and 06 cost money every hour they run:
 delete them when you finish.**
@@ -37,6 +38,7 @@ flowchart LR
   L03 --> L07[07 Capstone]
   L04 --> L07
   L02 --> L08[08 AI with Bedrock]
+  L03 --> L09[09 Test locally on AWS Emulator]
 ```
 
 ## Repository layout
@@ -51,6 +53,7 @@ labs/NN-name/
 cdk/                  one CDK app (app.py) with one stack per lab (stacks/)
 scripts/deploy_cfn.py deploys any lab template (packages the Lambda code for you)
 tests/                pytest unit tests for every Lambda function (no AWS account needed)
+tests/integration/    the same code against AWS Emulator (lab 09)
 requirements-dev.txt  what you need locally: boto3, pytest, cfn-lint, ruff
 amplify.yml           Amplify Hosting settings for the website (lab 01, path D)
 ```
@@ -62,7 +65,7 @@ git clone https://github.com/<you>/aws-foundations-labs.git
 cd aws-foundations-labs
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-pytest                      # 23 tests, all offline
+pytest                      # 23 unit tests, all offline (emulator tests skip)
 
 aws login                   # see labs/00-setup
 cd cdk

@@ -16,8 +16,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # boto3 needs a Region to build clients, even when every call is faked.
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
-os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
-os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
+
+# Unit tests fake every AWS call, so dummy keys are enough. When AWS_ENDPOINT_URL is set you
+# are running the emulator tests (tests/integration): then the emulator's own keys must win.
+if not os.environ.get("AWS_ENDPOINT_URL"):
+    os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
+    os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
 
 
 def load_lambda(relative_path, name):

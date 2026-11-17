@@ -1,0 +1,47 @@
+name: Integration tests on AWS Emulator
+
+# Runs the real Lambda code against AWS Emulator on the GitHub runner:
+# no AWS account, no stored credentials, nothing to clean up.
+# Manual for now (Actions tab -> this workflow -> Run workflow); add `pull_request:` once it is green for you.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+
+      - name: Install AWS Emulator
+        run: |
+          curl -fsSLo aws-emulator.deb https://downloads.aws.com/aws-emulator/packages/aws-emulator/LTS/latest/aws-emulator_amd64.deb
+          sudo apt-get install -y ./aws-emulator.deb
+          aws-emulator -v
+
+      - name: Start it and wait until healthy
+        run: |
+          aws-emulator --telemetry off --idle-timeout 900 > emulator.log 2>&1 &
+          for i in $(seq 1 30); do
+            [ -f ~/.aws/emulator/9297/ca.pem ] && curl -fsS --cacert ~/.aws/emulator/9297/ca.pem https://127.0.0.1:9297/__admin/health && exit 0
+            sleep 1
+          done
+          cat emulator.log; exit 1
+
+      - name: Run the integration tests
+        run: |
+          source labs/09-aws-emulator/emulator-env.sh
+          aws sts get-caller-identity
+          python labs/09-aws-emulator/try_it.py
+          pytest tests/integration -v
+
+      - if: failure()
+        run: cat emulator.log
