@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 05 - Lambda + RDS PostgreSQL in a private network: a VPC with two private
+  subnets, security groups, an RDS database whose password lives in Secrets Manager,
+  a Secrets Manager VPC endpoint and a Lambda function inside the VPC.
+  Costs while running: about $0.04/hour (db.t4g.micro + endpoint). Delete the stack after the lab.
+  Run "npm ci --omit=dev" in ../src first, then deploy with scripts/deploy-cfn.sh.
+
+Parameters:
+  DatabaseName:
+    Type: String
+    Default: shop
+    AllowedPattern: '^[a-z][a-z0-9_]{0,30}$'
+
+Resources:
+  # ── Network: a private VPC, no internet access at all ──────────────────
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true # needed for the VPC endpoint's private DNS
+      Tags:
+        - Key: Name
+          Value: lab05-vpc
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: lab05-private-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: lab05-private-b
+
+  # ── Security groups: who may talk to whom ──────────────────────────────
+  FunctionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lab 05 Lambda function
+      VpcId: !Ref Vpc
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lab 05 database - PostgreSQL from the function only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref FunctionSecurityGroup
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lab 05 Secrets Manager endpoint - HTTPS from the function only
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref FunctionSecurityGroup
+
+  # ── The database ───────────────────────────────────────────────────────
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Lab 05 private subnets
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete # lab only: real data deserves Snapshot
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: postgres
+      EngineVersion: '17.6' # check RDS → Create database for the newest 17.x in your Region
+      DBInstanceClass: db.t4g.micro
+      AllocatedStorage: '20'
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: !Ref DatabaseName
+      MasterUsername: postgres
+      ManageMasterUserPassword: true # RDS creates and rotates the password in Secrets Manager
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups: [!Ref DatabaseSecurityGroup]
+      PubliclyAccessible: false
+      MultiAZ: false # true = a standby in a second AZ (doubles the cost)
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+
+  # The function has no internet, so it reaches Secrets Manager through this private endpoint.
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref Vpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.secretsmanager'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+
+  # ── The function ───────────────────────────────────────────────────────
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Logs + the network interfaces Lambda needs inside a VPC
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      Policies:
+        - PolicyName: read-database-secret
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !GetAtt Database.MasterUserSecret.SecretArn
+
+  ProductsFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: SecretsManagerEndpoint
+    Properties:
+      Description: Lab 05 - reads and writes PostgreSQL
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src
+      MemorySize: 256
+      Timeout: 15
+      Role: !GetAtt FunctionRole.Arn
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref FunctionSecurityGroup]
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt Database.Endpoint.Address
+          DB_NAME: !Ref DatabaseName
+          SECRET_ARN: !GetAtt Database.MasterUserSecret.SecretArn
+          NODE_EXTRA_CA_CERTS: /var/runtime/ca-cert.pem
+
+Outputs:
+  FunctionName:
+    Description: 'Test it: aws lambda invoke --function-name <name> --payload file://events/init.json --cli-binary-format raw-in-base64-out out.json'
+    Value: !Ref ProductsFunction
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+  DatabaseSecretArn:
+    Value: !GetAtt Database.MasterUserSecret.SecretArn

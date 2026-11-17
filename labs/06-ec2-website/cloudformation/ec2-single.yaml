@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 06 (part 1) - One EC2 web server running nginx, installed by user data.
+  No SSH: connect with Session Manager. Use the default VPC and a public subnet.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: The default VPC is fine
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: A public subnet of that VPC (any subnet of the default VPC)
+  RepoUrl:
+    Type: String
+    Description: Your fork of this repository, e.g. https://github.com/you/aws-foundations-labs.git
+    AllowedPattern: '^https://.+\.git$'
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t4g.micro]
+    Description: t4g needs the arm64 image below
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Always the newest Amazon Linux 2023 image
+
+Resources:
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lab 06 web server - HTTP only, no SSH
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Website
+
+  # The server's identity: lets Session Manager connect (instead of SSH keys).
+  WebRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'
+
+  WebInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref WebRole]
+
+  WebServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds: [!Ref WebSecurityGroup]
+      IamInstanceProfile: !Ref WebInstanceProfile
+      MetadataOptions:
+        HttpTokens: required # IMDSv2 only: blocks a common credential-theft trick
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+            Encrypted: true
+      Tags:
+        - Key: Name
+          Value: lab06-web
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Same steps as ../user-data.sh
+          set -euxo pipefail
+          dnf upgrade -y
+          dnf install -y nginx git
+          git clone --depth 1 "${RepoUrl}" /opt/website
+          cat > /usr/local/bin/update-site <<'SCRIPT'
+          #!/bin/bash
+          set -euo pipefail
+          git -C /opt/website pull --ff-only
+          rm -rf /usr/share/nginx/html/*
+          cp -r /opt/website/site/. /usr/share/nginx/html/
+          echo "Website updated to commit $(git -C /opt/website rev-parse --short HEAD)"
+          SCRIPT
+          chmod +x /usr/local/bin/update-site
+          rm -rf /usr/share/nginx/html/*
+          cp -r /opt/website/site/. /usr/share/nginx/html/
+          cat > /etc/nginx/default.d/website.conf <<'NGINX'
+          location = /health { access_log off; default_type text/plain; return 200 "ok\n"; }
+          gzip on;
+          gzip_types text/css application/javascript image/svg+xml application/json;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header X-Frame-Options "DENY" always;
+          add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+          NGINX
+          nginx -t
+          systemctl enable --now nginx
+
+  # A fixed public IP that survives stop/start. Like every public IPv4 address it costs about $0.005/hour.
+  WebIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref WebServer
+
+Outputs:
+  WebsiteUrl:
+    Description: Plain HTTP. Lab 06 part 2 adds a load balancer; put CloudFront in front for HTTPS.
+    Value: !Sub 'http://${WebIp.PublicIp}'
+  InstanceId:
+    Description: 'Connect: EC2 console → Connect → Session Manager, or aws ssm start-session --target <id>'
+    Value: !Ref WebServer

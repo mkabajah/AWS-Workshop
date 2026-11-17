@@ -1,0 +1,4 @@
+templates:
+  - labs/*/cloudformation/*.yaml
+ignore_checks:
+  - W3002 # Code: ../src is a local path on purpose; scripts/deploy-cfn.sh packages it

@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 03 - Notes API: HTTP API (API Gateway) -> Lambda -> DynamoDB.
+  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+
+Resources:
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BillingMode: PAY_PER_REQUEST # pay per read/write, nothing when idle
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false # turn on for real data: restores to any second in 35 days
+
+  # Least privilege: these five actions, on this one table.
+  NotesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: notes-table-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                Resource: !GetAtt NotesTable.Arn
+
+  NotesLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  NotesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 03 - notes API
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src
+      MemorySize: 256
+      Timeout: 10
+      Role: !GetAtt NotesRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref NotesLogs
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NotesTable
+
+  # "Quick create" HTTP API: one resource gives a route, an integration and a deployed stage.
+  NotesApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-notes'
+      ProtocolType: HTTP
+      Target: !GetAtt NotesFunction.Arn
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowMethods: [GET, POST, DELETE]
+        AllowHeaders: [content-type]
+
+  # Resource-based policy: API Gateway may invoke the function, from this API only.
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NotesFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${NotesApi}/*'
+
+Outputs:
+  ApiUrl:
+    Description: 'Try: curl <ApiUrl>/notes'
+    Value: !GetAtt NotesApi.ApiEndpoint
+  TableName:
+    Value: !Ref NotesTable

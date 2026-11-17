@@ -1,0 +1,7 @@
+{
+  "version": "2.0",
+  "rawPath": "/notes",
+  "requestContext": { "http": { "method": "POST" } },
+  "body": "{\"title\":\"First note\",\"text\":\"Saved by Lambda in DynamoDB\"}",
+  "isBase64Encoded": false
+}

@@ -1,0 +1,8 @@
+node_modules/
+cdk/cdk.out/
+cdk/cdk.context.json
+*.zip
+out.json
+packaged-*.yaml
+.DS_Store
+.env

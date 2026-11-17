@@ -1,0 +1,7 @@
+{
+  "Records": [
+    { "messageId": "m-1", "body": "{\"orderId\":\"A-1001\",\"items\":[{\"name\":\"Notebook\",\"price\":4.5,\"qty\":2}]}" },
+    { "messageId": "m-2", "body": "{\"orderId\":\"A-1002\",\"items\":[]}" },
+    { "messageId": "m-3", "body": "not json" }
+  ]
+}

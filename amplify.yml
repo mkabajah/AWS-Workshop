@@ -1,0 +1,16 @@
+# Lab 01, Path D: AWS Amplify Hosting builds and deploys site/ on every git push.
+# In the Amplify console: connect the repository, tick "My app is a monorepo", app root = site
+version: 1
+applications:
+  - appRoot: site
+    frontend:
+      phases:
+        build:
+          commands:
+            - echo "Static site, nothing to build"
+      artifacts:
+        baseDirectory: .
+        files:
+          - '**/*'
+      cache:
+        paths: []

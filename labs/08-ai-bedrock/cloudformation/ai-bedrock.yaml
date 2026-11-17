@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 08 - An "ask me" AI endpoint: function URL -> Lambda -> Amazon Bedrock.
+  Capped at 2 concurrent requests and 300 output tokens per answer to protect your credits.
+  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+
+Parameters:
+  ModelId:
+    Type: String
+    Default: us.amazon.nova-micro-v1:0
+    Description: >-
+      A model or inference profile ID that works in your Region (Bedrock console
+      -> Model catalog). In Europe, try eu.amazon.nova-micro-v1:0.
+  SiteContext:
+    Type: String
+    Default: 'Your Name is a computer science student learning AWS. Projects: a personal website on S3, CloudFront, Lambda and DynamoDB.'
+    Description: Facts about you that the assistant may use
+
+Resources:
+  AskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: invoke-bedrock-models
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  # Inference profiles route a request to the model in one of several Regions
+                  - !Sub 'arn:${AWS::Partition}:bedrock:*::foundation-model/*'
+                  - !Sub 'arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/*'
+
+  AskLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  AskFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 08 - answers questions with Amazon Bedrock
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src
+      MemorySize: 256
+      Timeout: 30
+      ReservedConcurrentExecutions: 2 # at most 2 answers at a time
+      Role: !GetAtt AskRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref AskLogs
+      Environment:
+        Variables:
+          MODEL_ID: !Ref ModelId
+          SITE_CONTEXT: !Ref SiteContext
+
+  AskUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref AskFunction
+      AuthType: NONE
+      Cors:
+        AllowOrigins: ['*']
+        AllowMethods: [POST]
+        AllowHeaders: [content-type]
+
+  AskUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AskFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+  AskInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AskFunction
+      Action: lambda:InvokeFunction
+      Principal: '*'
+      InvokedViaFunctionUrl: true
+
+Outputs:
+  AskUrl:
+    Description: 'curl -X POST <url> -H "content-type: application/json" -d "{\"question\":\"What do you build?\"}"'
+    Value: !GetAtt AskUrl.FunctionUrl

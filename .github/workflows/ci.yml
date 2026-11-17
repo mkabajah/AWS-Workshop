@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lambda unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --omit=dev
+        working-directory: labs/05-lambda-rds/src
+      - run: npm test
+
+  cloudformation:
+    name: Lint CloudFormation templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install cfn-lint
+      - run: cfn-lint
+
+  cdk:
+    name: Synthesize every CDK stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cdk/package-lock.json
+      - run: npm ci --omit=dev
+        working-directory: labs/05-lambda-rds/src
+      - run: npm ci
+        working-directory: cdk
+      - run: npx tsc --noEmit
+        working-directory: cdk
+      - run: npx cdk synth --quiet -c email=ci@example.com
+        working-directory: cdk

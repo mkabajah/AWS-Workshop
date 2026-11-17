@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 02 - Lambda basics: one function, an execution role, a log group with
+  7-day retention and a public function URL.
+  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+
+Parameters:
+  Greeting:
+    Type: String
+    Default: Hello
+    Description: Read by the function from its environment
+
+Resources:
+  # What the function is allowed to do: here, only write its logs.
+  HelloRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+
+  HelloLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  HelloFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 02 - hello from Lambda
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src
+      MemorySize: 128
+      Timeout: 5
+      Role: !GetAtt HelloRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref HelloLogs
+      Environment:
+        Variables:
+          GREETING: !Ref Greeting
+
+  # A public HTTPS address for the function, no API Gateway needed.
+  HelloUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref HelloFunction
+      AuthType: NONE
+
+  HelloUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HelloFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+  HelloInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HelloFunction
+      Action: lambda:InvokeFunction
+      Principal: '*'
+      InvokedViaFunctionUrl: true
+
+Outputs:
+  FunctionName:
+    Value: !Ref HelloFunction
+  FunctionUrl:
+    Description: 'Open in a browser, e.g. <url>?name=Dana'
+    Value: !GetAtt HelloUrl.FunctionUrl

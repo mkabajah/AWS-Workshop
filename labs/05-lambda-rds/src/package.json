@@ -1,0 +1,11 @@
+{
+  "name": "lab05-lambda-rds",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lambda function that reads and writes PostgreSQL on Amazon RDS",
+  "main": "index.mjs",
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}

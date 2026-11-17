@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- EDIT: your name and a one-line description -->
+  <title>Your Name · Cloud Builder</title>
+  <meta name="description" content="Your Name: learning to build on AWS. Projects, skills and a live guestbook.">
+  <meta name="theme-color" content="#141b2d">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Your Name · Cloud Builder">
+  <meta property="og:description" content="Learning to build on AWS, one feature at a time.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <nav class="container nav" aria-label="Main">
+      <a class="brand" href="#top" aria-label="Home"><span aria-hidden="true">YN</span></a>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#stack">How it's built</a></li>
+        <li data-feature="api" hidden><a href="#guestbook">Guestbook</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <p class="eyebrow" id="deploy-tag">Hosted on AWS · S3 + CloudFront</p>
+          <!-- EDIT: your name, role and a short pitch -->
+          <h1>Hi, I'm <span class="accent">Your Name</span>.</h1>
+          <p class="lead">Computer science student learning to build on AWS. I like turning ideas into small apps that real people use.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#projects">See my projects</a>
+            <a class="btn btn-ghost" href="https://github.com/your-username" rel="noopener">GitHub</a>
+            <a class="btn btn-ghost" href="https://www.linkedin.com/in/your-profile" rel="noopener">LinkedIn</a>
+          </div>
+          <p class="visit-badge" data-feature="api" hidden>
+            <span class="pulse" aria-hidden="true"></span>
+            <span><strong id="visits">…</strong> visits so far</span>
+          </p>
+        </div>
+        <div class="avatar" aria-hidden="true">YN</div>
+      </div>
+    </section>
+
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="container two-col">
+        <div>
+          <h2 id="about-title">About me</h2>
+          <!-- EDIT: two or three sentences about you -->
+          <p>I'm studying [your field] and learning cloud computing step by step. This site is my lab: every session it gets a new feature, from a static page to an app with an API, a database and event-driven code.</p>
+          <p>Right now I'm working towards the AWS Certified Cloud Practitioner exam.</p>
+        </div>
+        <div>
+          <h3 class="label">Skills</h3>
+          <ul class="chips">
+            <li>HTML &amp; CSS</li><li>JavaScript</li><li>Amazon S3</li><li>CloudFront</li>
+            <li>AWS Lambda</li><li>DynamoDB</li><li>AWS CDK</li><li>Git</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt" id="projects" aria-labelledby="projects-title">
+      <div class="container">
+        <h2 id="projects-title">Projects</h2>
+        <div class="cards">
+          <!-- EDIT: replace with your own projects -->
+          <article class="card">
+            <p class="card-tag">AWS · CDK</p>
+            <h3>This website</h3>
+            <p>A personal site that grows each week: S3 and CloudFront, then Lambda and DynamoDB, all defined as code.</p>
+          </article>
+          <article class="card">
+            <p class="card-tag">JavaScript</p>
+            <h3>Project two</h3>
+            <p>One or two lines on what it does, who it's for, and what you learned building it.</p>
+          </article>
+          <article class="card">
+            <p class="card-tag">Python</p>
+            <h3>Project three</h3>
+            <p>Link to the code or a live demo. Recruiters click these first.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="stack" aria-labelledby="stack-title">
+      <div class="container">
+        <h2 id="stack-title">How this site is built</h2>
+        <p class="muted">The page checks which features are deployed and switches them on.</p>
+        <ol class="stages">
+          <li class="stage is-live" data-stage="1">
+            <span class="stage-num">1</span>
+            <div><h3>Static site</h3><p>Private S3 bucket, served over HTTPS by CloudFront.</p></div>
+            <span class="status">Live</span>
+          </li>
+          <li class="stage" data-stage="2">
+            <span class="stage-num">2</span>
+            <div><h3>API and database</h3><p>API Gateway, Lambda and DynamoDB power the counter and guestbook.</p></div>
+            <span class="status">Next</span>
+          </li>
+          <li class="stage" data-stage="3">
+            <span class="stage-num">3</span>
+            <div><h3>Event trigger</h3><p>A file uploaded to S3 runs a Lambda function by itself.</p></div>
+            <span class="status">Next</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section alt" id="guestbook" aria-labelledby="guestbook-title" data-feature="api" hidden>
+      <div class="container two-col">
+        <div>
+          <h2 id="guestbook-title">Guestbook</h2>
+          <p class="muted">Messages are saved in DynamoDB by a Lambda function.</p>
+          <form id="guestbook-form" class="form" novalidate>
+            <label for="gb-name">Name</label>
+            <input id="gb-name" name="name" maxlength="40" autocomplete="name" required>
+            <label for="gb-message">Message <span class="muted" id="gb-count">0/280</span></label>
+            <textarea id="gb-message" name="message" maxlength="280" rows="4" required></textarea>
+            <button class="btn btn-primary" type="submit">Sign the guestbook</button>
+            <p class="form-status" id="gb-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+        <div>
+          <h3 class="label">Latest messages</h3>
+          <ul class="feed" id="messages" aria-live="polite"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="uploads" aria-labelledby="uploads-title" data-feature="uploads" hidden>
+      <div class="container">
+        <h2 id="uploads-title">Latest uploads</h2>
+        <p class="muted">Each file dropped into the uploads bucket triggered a Lambda that recorded it here.</p>
+        <ul class="feed" id="upload-list" aria-live="polite"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <!-- EDIT: your name -->
+      <p>© <span id="year"></span> Your Name · Built on AWS during AWS Foundations</p>
+    </div>
+  </footer>
+</body>
+</html>

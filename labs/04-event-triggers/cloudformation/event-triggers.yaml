@@ -1,0 +1,223 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Lab 04 - Event triggers: S3 upload -> Lambda -> SNS email; SQS queue (+ dead-letter
+  queue) -> Lambda; EventBridge schedule -> Lambda -> SNS email.
+  Deploy with scripts/deploy-cfn.sh (it packages ../src for you).
+
+Parameters:
+  NotificationEmail:
+    Type: String
+    Description: Where SNS sends notifications. Confirm the subscription email AWS sends you.
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+  ReportSchedule:
+    Type: String
+    Default: cron(0 7 * * ? *)
+    Description: When the report runs (UTC). Use rate(5 minutes) during a demo.
+
+Resources:
+  # ── Shared: one SNS topic that emails you ──────────────────────────────
+  NotificationsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: AWS Labs
+
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationsTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # ── Trigger 1: S3 upload -> Lambda ─────────────────────────────────────
+  # The bucket name is built with !Sub (not !Ref) so the bucket, the function
+  # and the permission don't depend on each other in a circle.
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: OnUploadPermission
+    Properties:
+      BucketName: !Sub 'lab04-uploads-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt OnUploadFunction.Arn
+
+  OnUploadPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref OnUploadFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub 'arn:${AWS::Partition}:s3:::lab04-uploads-${AWS::AccountId}-${AWS::Region}'
+
+  OnUploadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: read-uploads-and-notify
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::lab04-uploads-${AWS::AccountId}-${AWS::Region}/*'
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref NotificationsTopic
+
+  OnUploadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 04 - runs on every S3 upload
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src/on-upload
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt OnUploadRole.Arn
+      Environment:
+        Variables:
+          TOPIC_ARN: !Ref NotificationsTopic
+
+  # ── Trigger 2: SQS queue -> Lambda, with a dead-letter queue ───────────
+  OrdersDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600 # 14 days to inspect failed messages
+
+  OrdersQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 60 # at least 6x the function timeout
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt OrdersDeadLetterQueue.Arn
+        maxReceiveCount: 3 # after 3 failed tries, move to the DLQ
+
+  ProcessOrderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: consume-orders-queue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt OrdersQueue.Arn
+
+  ProcessOrderFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 04 - processes orders from SQS
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src/process-order
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt ProcessOrderRole.Arn
+
+  OrdersTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt OrdersQueue.Arn
+      FunctionName: !Ref ProcessOrderFunction
+      BatchSize: 10
+      MaximumBatchingWindowInSeconds: 5
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # ── Trigger 3: a schedule -> Lambda ────────────────────────────────────
+  DailyReportRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: list-uploads-and-notify
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::lab04-uploads-${AWS::AccountId}-${AWS::Region}'
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref NotificationsTopic
+
+  DailyReportFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lab 04 - emails a daily report
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Code: ../src/daily-report
+      MemorySize: 128
+      Timeout: 30
+      Role: !GetAtt DailyReportRole.Arn
+      Environment:
+        Variables:
+          BUCKET_NAME: !Sub 'lab04-uploads-${AWS::AccountId}-${AWS::Region}'
+          TOPIC_ARN: !Ref NotificationsTopic
+
+  DailyReportSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Lab 04 - runs the daily report
+      ScheduleExpression: !Ref ReportSchedule
+      State: ENABLED
+      Targets:
+        - Id: daily-report
+          Arn: !GetAtt DailyReportFunction.Arn
+
+  DailyReportPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DailyReportFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyReportSchedule.Arn
+
+Outputs:
+  UploadsBucket:
+    Description: 'Upload a file here: aws s3 cp photo.jpg s3://<bucket>/'
+    Value: !Ref UploadsBucket
+  OrdersQueueUrl:
+    Description: Send test orders here
+    Value: !Ref OrdersQueue
+  DeadLetterQueueUrl:
+    Description: Failed orders end up here
+    Value: !Ref OrdersDeadLetterQueue
+  TopicArn:
+    Value: !Ref NotificationsTopic
