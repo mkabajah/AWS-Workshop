@@ -24,7 +24,7 @@ Try it once in the **Playground** (that's also a $20 Free Tier credit activity).
 ## Path A · Console
 
 1. **Lambda** → create `ask` (Python 3.13, arm64) → paste [`src/lambda_function.py`](src/lambda_function.py) → **Deploy**.
-2. **Configuration** → **General**: memory 256 MB, timeout 30 s. **Concurrency** → reserve **2**.
+2. **Configuration** → **General**: memory 256 MB, timeout 30 s. Optional: **Concurrency** → reserve **2** (only if your account's concurrency quota is above 10; see Fix it).
 3. **Environment variables:** `MODEL_ID` = the ID you copied · `SITE_CONTEXT` = two or three sentences about you.
 4. **Permissions** → role → inline policy:
    ```json
@@ -68,6 +68,7 @@ The log line shows the tokens used per answer: that's what you pay for.
 | `AccessDeniedException ... bedrock:InvokeModel` | Role policy missing | Step 4 |
 | `AccessDeniedException ... model access` | The model needs a one-time use-case form (some providers) | Open the model in the catalog and submit the form, or use Amazon Nova |
 | `ThrottlingException` | Too many requests | Normal under load; reserved concurrency keeps it small |
+| `decreases account's UnreservedConcurrentExecution below its minimum value of [10]` | New accounts have a concurrency quota of 10, and AWS keeps 10 unreserved | Don't reserve concurrency (the default), or ask for a higher quota in **Service Quotas → Lambda → Concurrent executions** |
 | Timeout | Long answers | Keep `maxTokens` low; raise the timeout |
 
 ## Clean up

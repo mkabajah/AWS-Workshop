@@ -9,7 +9,16 @@ from .shared import LabFunction
 
 
 class Lab08AiBedrockStack(cdk.Stack):
-    def __init__(self, scope: Construct, construct_id: str, *, model_id: str, site_context: str, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        *,
+        model_id: str,
+        site_context: str,
+        reserved_concurrency: int = 0,
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         ask = LabFunction(
@@ -21,8 +30,10 @@ class Lab08AiBedrockStack(cdk.Stack):
             memory_size=256,
             timeout=cdk.Duration.seconds(30),
         )
-        # At most 2 answers at once: protects your credits if the URL gets shared
-        ask.node.default_child.reserved_concurrent_executions = 2
+        # -c reservedConcurrency=2 caps it at 2 answers at once. Off by default: new accounts have a
+        # concurrency quota of 10 and AWS keeps 10 unreserved, so any reservation fails there.
+        if reserved_concurrency > 0:
+            ask.node.default_child.reserved_concurrent_executions = reserved_concurrency
 
         ask.add_to_role_policy(
             iam.PolicyStatement(

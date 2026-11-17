@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Lab 08 - An "ask me" AI endpoint: function URL -> Lambda -> Amazon Bedrock.
-  Capped at 2 concurrent requests and 300 output tokens per answer to protect your credits.
+  Capped at 300 output tokens per answer to protect your credits; set ReservedConcurrency to also cap
+  concurrent requests (accounts with a concurrency quota of 10, like most new ones, must keep it at 0).
   Deploy with scripts/deploy_cfn.py (it packages ../src for you).
 
 Parameters:
@@ -15,6 +16,16 @@ Parameters:
     Type: String
     Default: 'Your Name is a computer science student learning AWS. Projects: a personal website on S3, CloudFront, Lambda and DynamoDB.'
     Description: Facts about you that the assistant may use
+  ReservedConcurrency:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: >-
+      0 = no reservation. 2 = at most 2 answers at a time. New accounts have a Lambda concurrency
+      quota of 10 and AWS keeps 10 unreserved, so any reservation fails there until the quota is raised.
+
+Conditions:
+  ReserveConcurrency: !Not [!Equals [!Ref ReservedConcurrency, 0]]
 
 Resources:
   AskRole:
@@ -55,7 +66,7 @@ Resources:
       Code: ../src
       MemorySize: 256
       Timeout: 30
-      ReservedConcurrentExecutions: 2 # at most 2 answers at a time
+      ReservedConcurrentExecutions: !If [ReserveConcurrency, !Ref ReservedConcurrency, !Ref 'AWS::NoValue']
       Role: !GetAtt AskRole.Arn
       LoggingConfig:
         LogGroup: !Ref AskLogs

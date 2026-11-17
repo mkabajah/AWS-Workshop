@@ -62,6 +62,7 @@ Lab08AiBedrockStack(
     description="Lab 08 - AI answers with Amazon Bedrock",
     model_id=ctx("modelId", "us.amazon.nova-micro-v1:0"),
     site_context=ctx("siteContext", "Your Name is a computer science student learning AWS."),
+    reserved_concurrency=int(ctx("reservedConcurrency", "0")),
 )
 
 cdk.Tags.of(app).add("project", "aws-workshop")
