@@ -73,7 +73,7 @@ cd cdk && npx cdk deploy Lab04EventTriggers -c email=you@example.com
 aws s3 cp site/favicon.svg s3://<UploadsBucket>/
 aws sqs send-message --queue-url <OrdersQueueUrl> --message-body file://labs/04-event-triggers/events/order-good.json
 aws sqs send-message --queue-url <OrdersQueueUrl> --message-body file://labs/04-event-triggers/events/order-bad.json
-aws sqs get-queue-attributes --queue-url <DeadLetterQueueUrl> --attribute-names ApproximateNumberOfMessages   # a minute later: 1
+aws sqs get-queue-attributes --queue-url <DeadLetterQueueUrl> --attribute-names ApproximateNumberOfMessages   # about 3 minutes later: 1 (3 tries, 60 s apart)
 aws lambda invoke --function-name <daily-report function> out.json && cat out.json                            # run the report now
 ```
 
